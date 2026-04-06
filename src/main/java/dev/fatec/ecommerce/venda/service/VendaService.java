@@ -1,10 +1,10 @@
 package dev.fatec.ecommerce.venda.service;
 
-import dev.fatec.ecommerce.cupom.model.Cupom;
 import dev.fatec.ecommerce.cupom.repository.CupomRepository;
-import dev.fatec.ecommerce.produto.model.Produto;
 import dev.fatec.ecommerce.produto.repository.ProdutoRepository;
 import dev.fatec.ecommerce.venda.dto.FinalizarCompraDTO;
+import dev.fatec.ecommerce.venda.dto.ItemCompraDTO;
+import dev.fatec.ecommerce.venda.dto.PagamentoCartaoDTO;
 import dev.fatec.ecommerce.venda.model.*;
 import dev.fatec.ecommerce.venda.repository.VendaRepository;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -65,7 +66,7 @@ public class VendaService {
 
         // Itens
         BigDecimal subtotal = BigDecimal.ZERO;
-        for (var itemDto : dto.getItens()) {
+        for (ItemCompraDTO itemDto : dto.getItens()) {
             ItemVenda item = new ItemVenda();
             item.setVenda(venda);
             item.setProdutoId(itemDto.getProdutoId());
@@ -91,7 +92,7 @@ public class VendaService {
                 venda.setCupomPromocionalCodigo(cupom.getCodigo());
                 venda.setDescontoPromocional(cupom.getValor());
                 cupom.setUtilizado(true);
-                cupom.setDataUtilizacao(java.time.LocalDateTime.now());
+                cupom.setDataUtilizacao(LocalDateTime.now());
                 cupomRepository.save(cupom);
             });
         }
@@ -102,7 +103,7 @@ public class VendaService {
             cupomRepository.findById(cupomId).ifPresent(cupom -> {
                 venda.getCuponsTrocaIds().add(cupomId);
                 cupom.setUtilizado(true);
-                cupom.setDataUtilizacao(java.time.LocalDateTime.now());
+                cupom.setDataUtilizacao(LocalDateTime.now());
                 cupomRepository.save(cupom);
             });
         }
@@ -116,7 +117,7 @@ public class VendaService {
         venda.setDescontoTroca(descontoTroca);
 
         // Pagamentos com cartão
-        for (var pagamentoDto : dto.getPagamentosCartao()) {
+        for (PagamentoCartaoDTO pagamentoDto : dto.getPagamentosCartao()) {
             PagamentoCartao pagamento = new PagamentoCartao();
             pagamento.setVenda(venda);
             pagamento.setCartaoId(pagamentoDto.getCartaoId());

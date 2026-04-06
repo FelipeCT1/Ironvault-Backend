@@ -3,6 +3,7 @@ package dev.fatec.ecommerce.venda.model;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -12,13 +13,14 @@ import java.util.List;
 @Data
 @Table(name = "venda")
 public class Venda {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @NotNull
     @Column(unique = true)
-    private String codigoPedido; // Ex: PED-0001
+    private String codigoPedido;
 
     @NotNull
     private Long clienteId;
@@ -31,18 +33,18 @@ public class Venda {
     @OneToMany(mappedBy = "venda", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PagamentoCartao> pagamentosCartao = new ArrayList<>();
 
-    // Endereço de entrega (embedded)
     @Embedded
     private EnderecoEntrega enderecoEntrega;
 
-    // Frete
     private String freteTipo;
+
     private Integer fretePrazoDias;
+
     @Column(precision = 10, scale = 2)
     private BigDecimal freteValor;
 
-    // Cupons
     private Long cupomPromocionalId;
+
     private String cupomPromocionalCodigo;
 
     @ElementCollection
@@ -50,7 +52,6 @@ public class Venda {
     @Column(name = "cupom_troca_id")
     private List<Long> cuponsTrocaIds = new ArrayList<>();
 
-    // Valores
     @Column(precision = 10, scale = 2)
     private BigDecimal subtotal;
 
@@ -100,18 +101,4 @@ public class Venda {
             .subtract(descontoTroca != null ? descontoTroca : BigDecimal.ZERO)
             .add(valorFrete);
     }
-}
-
-@Embeddable
-@Data
-class EnderecoEntrega {
-    private String apelido;
-    private String tipoLogradouro;
-    private String logradouro;
-    private String numero;
-    private String bairro;
-    private String cep;
-    private String cidade;
-    private String estado;
-    private String pais;
 }

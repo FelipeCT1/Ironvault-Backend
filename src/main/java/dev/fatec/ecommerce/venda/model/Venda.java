@@ -7,7 +7,9 @@ import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Data
@@ -28,10 +30,10 @@ public class Venda {
     private String clienteNome;
 
     @OneToMany(mappedBy = "venda", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ItemVenda> itens = new ArrayList<>();
+    private Set<ItemVenda> itens = new LinkedHashSet<>();
 
     @OneToMany(mappedBy = "venda", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<PagamentoCartao> pagamentosCartao = new ArrayList<>();
+    private Set<PagamentoCartao> pagamentosCartao = new LinkedHashSet<>();
 
     @Embedded
     private EnderecoEntrega enderecoEntrega;
@@ -78,7 +80,7 @@ public class Venda {
     @PrePersist
     protected void onCreate() {
         dataCriacao = LocalDateTime.now();
-        dataAtualizacao = LocalDateTime.now();
+        dataAtualizacao = LocalDateTime.now(); 
         if (codigoPedido == null) {
             codigoPedido = "PED-" + String.format("%04d", id != null ? id : System.currentTimeMillis() % 10000);
         }

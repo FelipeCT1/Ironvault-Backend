@@ -3,32 +3,49 @@ package dev.fatec.ecommerce.cliente;
 import dev.fatec.ecommerce.cliente.model.AlterarSenhaDTO;
 import dev.fatec.ecommerce.cliente.model.Cliente;
 import dev.fatec.ecommerce.cliente.service.ClienteService;
-import lombok.AllArgsConstructor;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@AllArgsConstructor
 @RestController
 @RequestMapping("/api/v1/clientes")
+@RequiredArgsConstructor
 public class ClienteController {
-    private ClienteService service;
+
+    private final ClienteService service;
 
     @PostMapping
-    public ResponseEntity<Cliente> criar(@RequestBody Cliente cliente) {
+    public ResponseEntity<Cliente> criar(@Valid @RequestBody Cliente cliente) {
         return ResponseEntity.ok(service.salvar(cliente));
     }
 
-    @GetMapping("/buscaGeral")
-    public ResponseEntity<List<Cliente>>  listarTodos() {
+    @GetMapping
+    public ResponseEntity<List<Cliente>> listarTodos() {
         return ResponseEntity.ok(service.consultaClientes());
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Cliente> buscarPorId(@PathVariable Long id) {
+        return ResponseEntity.ok(service.buscarPorId(id));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Cliente> atualizar(@PathVariable Long id, @Valid @RequestBody Cliente cliente) {
+        return ResponseEntity.ok(service.atualizar(id, cliente));
     }
 
     @PatchMapping("/{id}/inativar")
     public ResponseEntity<Void> inativar(@PathVariable Long id) {
         service.inativar(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{id}/ativar")
+    public ResponseEntity<Void> ativar(@PathVariable Long id) {
+        service.ativar(id);
         return ResponseEntity.noContent().build();
     }
 
@@ -40,9 +57,8 @@ public class ClienteController {
         return service.buscarComFiltros(nome, cpf, email);
     }
 
-
     @PatchMapping("/{id}/alterar-senha")
-    public ResponseEntity<Void> alterarSenha(@PathVariable Long id, @RequestBody AlterarSenhaDTO senhaNova) {
+    public ResponseEntity<Void> alterarSenha(@PathVariable Long id, @Valid @RequestBody AlterarSenhaDTO senhaNova) {
         service.atualizarSenha(id, senhaNova.novaSenha(), senhaNova.confirmacaoSenha());
         return ResponseEntity.noContent().build();
     }

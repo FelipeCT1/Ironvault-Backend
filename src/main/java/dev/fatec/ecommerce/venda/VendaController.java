@@ -3,6 +3,7 @@ package dev.fatec.ecommerce.venda;
 import dev.fatec.ecommerce.venda.dto.FinalizarCompraDTO;
 import dev.fatec.ecommerce.venda.model.Venda;
 import dev.fatec.ecommerce.venda.service.VendaService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +17,11 @@ public class VendaController {
 
     private final VendaService service;
 
+    @GetMapping
+    public ResponseEntity<List<Venda>> listarTodas() {
+        return ResponseEntity.ok(service.listarTodas());
+    }
+
     @GetMapping("/cliente/{clienteId}")
     public ResponseEntity<List<Venda>> listarPorCliente(@PathVariable Long clienteId) {
         return ResponseEntity.ok(service.listarPorCliente(clienteId));
@@ -24,19 +30,19 @@ public class VendaController {
     @GetMapping("/{id}")
     public ResponseEntity<Venda> buscarPorId(@PathVariable Long id) {
         return service.buscarPorId(id)
-            .map(ResponseEntity::ok)
-            .orElse(ResponseEntity.notFound().build());
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/codigo/{codigo}")
     public ResponseEntity<Venda> buscarPorCodigo(@PathVariable String codigo) {
         return service.buscarPorCodigo(codigo)
-            .map(ResponseEntity::ok)
-            .orElse(ResponseEntity.notFound().build());
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public ResponseEntity<Venda> finalizarCompra(@RequestBody FinalizarCompraDTO dto) {
+    public ResponseEntity<Venda> finalizarCompra(@Valid @RequestBody FinalizarCompraDTO dto) {
         return ResponseEntity.ok(service.finalizarCompra(dto));
     }
 

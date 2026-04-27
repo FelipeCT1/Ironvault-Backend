@@ -1,5 +1,6 @@
 package dev.fatec.ecommerce.cliente.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -35,10 +36,15 @@ public class Cliente {
     @NotBlank(message = "E-mail é obrigatório")
     private String email;
 
-    @NotBlank(message = "Senha é obrigatório")
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String senha;
+
     private Integer ranking = 0;
     private Boolean ativo = true;
+
+    @Enumerated(EnumType.STRING)
+    @NotNull
+    private Papel papel = Papel.CLIENTE;
 
     @NotBlank private String tipoTelefone;
     @NotBlank private String ddd;

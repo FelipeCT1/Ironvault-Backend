@@ -2,9 +2,10 @@ package dev.fatec.ecommerce.cliente.service;
 
 import dev.fatec.ecommerce.cliente.model.Cliente;
 import dev.fatec.ecommerce.cliente.repository.ClienteRepository;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -13,27 +14,64 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class ClienteService {
+
     private final ClienteRepository repository;
+    private final PasswordEncoder passwordEncoder;
 
     public Cliente salvar(Cliente cliente) {
         validarEnderecos(cliente);
+        if (cliente.getSenha() == null || cliente.getSenha().isBlank()) {
+            throw new RuntimeException("Senha é obrigatória");
+        }
         if (cliente.getRanking() == null) cliente.setRanking(0);
-
+        cliente.setSenha(passwordEncoder.encode(cliente.getSenha()));
         return repository.save(cliente);
     }
 
-    private void validarEnderecos(Cliente cliente) {
-        boolean temEntrega = cliente.getEnderecos().stream().anyMatch(e -> e.isEhEntrega());
-        boolean temCobranca = cliente.getEnderecos().stream().anyMatch(e -> e.isEhCobranca());
+    public Cliente buscarPorId(Long id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Cliente não encontrado"));
+    }
 
-        if (!temEntrega || !temCobranca) {
-            throw new RuntimeException("Cliente deve ter no mínimo um endereço de entrega e um de cobrança.");
+    public Cliente atualizar(Long id, Cliente clienteAtualizado) {
+        Cliente existente = buscarPorId(id);
+
+        existente.setNome(clienteAtualizado.getNome());
+        existente.setCpf(clienteAtualizado.getCpf());
+        existente.setEmail(clienteAtualizado.getEmail());
+        existente.setDataNascimento(clienteAtualizado.getDataNascimento());
+        existente.setGenero(clienteAtualizado.getGenero());
+        existente.setTipoTelefone(clienteAtualizado.getTipoTelefone());
+        existente.setDdd(clienteAtualizado.getDdd());
+        existente.setNumeroTelefone(clienteAtualizado.getNumeroTelefone());
+
+        if (clienteAtualizado.getSenha() != null && !clienteAtualizado.getSenha().isBlank()) {
+            existente.setSenha(passwordEncoder.encode(clienteAtualizado.getSenha()));
         }
+
+        if (clienteAtualizado.getEnderecos() != null) {
+            existente.getEnderecos().clear();
+            existente.getEnderecos().addAll(clienteAtualizado.getEnderecos());
+        }
+
+        if (clienteAtualizado.getCartoes() != null) {
+            existente.getCartoes().clear();
+            existente.getCartoes().addAll(clienteAtualizado.getCartoes());
+        }
+
+        validarEnderecos(existente);
+        return repository.save(existente);
     }
 
     public void inativar(Long id) {
-        Cliente cliente = repository.findById(id).orElseThrow();
+        Cliente cliente = buscarPorId(id);
         cliente.setAtivo(false);
+        repository.save(cliente);
+    }
+
+    public void ativar(Long id) {
+        Cliente cliente = buscarPorId(id);
+        cliente.setAtivo(true);
         repository.save(cliente);
     }
 
@@ -64,10 +102,20 @@ public class ClienteService {
             throw new RuntimeException("As senhas não coincidem.");
         }
 
-        Cliente cliente = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
-
-        cliente.setSenha(novaSenha);
+        Cliente cliente = buscarPorId(id);
+        cliente.setSenha(passwordEncoder.encode(novaSenha));
         repository.save(cliente);
+    }
+
+    private void validarEnderecos(Cliente cliente) {
+        if (cliente.getEnderecos() == null || cliente.getEnderecos().isEmpty()) {
+            throw new RuntimeException("Cliente deve ter no mínimo um endereço de entrega e um de cobrança.");
+        }
+        boolean temEntrega = cliente.getEnderecos().stream().anyMatch(e -> e.isEhEntrega());
+        boolean temCobranca = cliente.getEnderecos().stream().anyMatch(e -> e.isEhCobranca());
+
+        if (!temEntrega || !temCobranca) {
+            throw new RuntimeException("Cliente deve ter no mínimo um endereço de entrega e um de cobrança.");
+        }
     }
 }

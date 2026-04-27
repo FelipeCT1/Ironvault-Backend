@@ -1,5 +1,7 @@
 package dev.fatec.ecommerce.config;
 
+import dev.fatec.ecommerce.cliente.model.*;
+import dev.fatec.ecommerce.cliente.repository.ClienteRepository;
 import dev.fatec.ecommerce.cupom.model.Cupom;
 import dev.fatec.ecommerce.cupom.model.TipoCupom;
 import dev.fatec.ecommerce.cupom.repository.CupomRepository;
@@ -12,6 +14,7 @@ import dev.fatec.ecommerce.produto.repository.ProdutoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -26,6 +29,8 @@ public class DataInitializer implements CommandLineRunner {
     private final GrupoPrecificacaoRepository grupoPrecificacaoRepository;
     private final ProdutoRepository produtoRepository;
     private final CupomRepository cupomRepository;
+    private final ClienteRepository clienteRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public void run(String... args) throws Exception {
@@ -40,6 +45,9 @@ public class DataInitializer implements CommandLineRunner {
         }
         if (cupomRepository.count() == 0) {
             inicializarCupons();
+        }
+        if (clienteRepository.count() == 0) {
+            inicializarClientes();
         }
     }
 
@@ -173,5 +181,108 @@ public class DataInitializer implements CommandLineRunner {
         troca3.setValidoAte(LocalDate.of(2026, 12, 31));
         troca3.setClienteId(1L);
         cupomRepository.save(troca3);
+    }
+
+    private void inicializarClientes() {
+        // Admin
+        Cliente admin = new Cliente();
+        admin.setNome("Admin IronVault");
+        admin.setGenero("MASCULINO");
+        admin.setDataNascimento(LocalDate.of(1990, 1, 1));
+        admin.setCpf("229.873.678-21");
+        admin.setEmail("admin@ironvault.com");
+        admin.setSenha(passwordEncoder.encode("admin123"));
+        admin.setPapel(Papel.ADMIN);
+        admin.setAtivo(true);
+        admin.setTipoTelefone("CELULAR");
+        admin.setDdd("11");
+        admin.setNumeroTelefone("99999-0000");
+
+        Endereco endAdmin = new Endereco();
+        endAdmin.setApelido("Matriz");
+        endAdmin.setTipoResidencia("COMERCIAL");
+        endAdmin.setTipoLogradouro("AVENIDA");
+        endAdmin.setLogradouro("Paulista");
+        endAdmin.setNumero("1000");
+        endAdmin.setBairro("Bela Vista");
+        endAdmin.setCep("01310-100");
+        endAdmin.setCidade("São Paulo");
+        endAdmin.setEstado("SP");
+        endAdmin.setPais("Brasil");
+        endAdmin.setEhEntrega(true);
+        endAdmin.setEhCobranca(true);
+        admin.getEnderecos().add(endAdmin);
+
+        CartaoCredito cartaoAdmin = new CartaoCredito();
+        cartaoAdmin.setNumero("4532 **** **** 0001");
+        cartaoAdmin.setNomeImpresso("ADMIN IRONVAULT");
+        cartaoAdmin.setBandeira("VISA");
+        cartaoAdmin.setCodigoSeguranca("123");
+        cartaoAdmin.setPreferencial(true);
+        admin.getCartoes().add(cartaoAdmin);
+
+        clienteRepository.save(admin);
+
+        // Cliente de teste
+        Cliente cliente = new Cliente();
+        cliente.setNome("João Silva");
+        cliente.setGenero("MASCULINO");
+        cliente.setDataNascimento(LocalDate.of(1990, 5, 15));
+        cliente.setCpf("697.507.430-59");
+        cliente.setEmail("joao.silva@email.com");
+        cliente.setSenha(passwordEncoder.encode("123456"));
+        cliente.setPapel(Papel.CLIENTE);
+        cliente.setAtivo(true);
+        cliente.setTipoTelefone("CELULAR");
+        cliente.setDdd("11");
+        cliente.setNumeroTelefone("99999-8888");
+
+        Endereco end1 = new Endereco();
+        end1.setApelido("Casa");
+        end1.setTipoResidencia("CASA");
+        end1.setTipoLogradouro("RUA");
+        end1.setLogradouro("das Flores");
+        end1.setNumero("123");
+        end1.setBairro("Jardim Primavera");
+        end1.setCep("01310-100");
+        end1.setCidade("São Paulo");
+        end1.setEstado("SP");
+        end1.setPais("Brasil");
+        end1.setEhEntrega(true);
+        end1.setEhCobranca(true);
+        cliente.getEnderecos().add(end1);
+
+        Endereco end2 = new Endereco();
+        end2.setApelido("Trabalho");
+        end2.setTipoResidencia("COMERCIAL");
+        end2.setTipoLogradouro("AVENIDA");
+        end2.setLogradouro("Paulista");
+        end2.setNumero("1000");
+        end2.setBairro("Bela Vista");
+        end2.setCep("01310-100");
+        end2.setCidade("São Paulo");
+        end2.setEstado("SP");
+        end2.setPais("Brasil");
+        end2.setEhEntrega(true);
+        end2.setEhCobranca(false);
+        cliente.getEnderecos().add(end2);
+
+        CartaoCredito cartao1 = new CartaoCredito();
+        cartao1.setNumero("4532 **** **** 1234");
+        cartao1.setNomeImpresso("JOAO SILVA");
+        cartao1.setBandeira("VISA");
+        cartao1.setCodigoSeguranca("456");
+        cartao1.setPreferencial(true);
+        cliente.getCartoes().add(cartao1);
+
+        CartaoCredito cartao2 = new CartaoCredito();
+        cartao2.setNumero("5500 **** **** 5678");
+        cartao2.setNomeImpresso("JOAO SILVA");
+        cartao2.setBandeira("MASTERCARD");
+        cartao2.setCodigoSeguranca("789");
+        cartao2.setPreferencial(false);
+        cliente.getCartoes().add(cartao2);
+
+        clienteRepository.save(cliente);
     }
 }

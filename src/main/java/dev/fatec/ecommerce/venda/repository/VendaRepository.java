@@ -13,6 +13,18 @@ import java.util.Optional;
 @Repository
 public interface VendaRepository extends JpaRepository<Venda, Long> {
 
+    @Query("SELECT v FROM Venda v LEFT JOIN FETCH v.itens LEFT JOIN FETCH v.pagamentosCartao WHERE v.id = :id")
+    Optional<Venda> findByIdFetched(@Param("id") Long id);
+
+    @Query("SELECT v FROM Venda v LEFT JOIN FETCH v.itens LEFT JOIN FETCH v.pagamentosCartao WHERE v.codigoPedido = :codigo")
+    Optional<Venda> findByCodigoPedidoFetched(@Param("codigo") String codigoPedido);
+
+    @Query("SELECT v FROM Venda v LEFT JOIN FETCH v.itens LEFT JOIN FETCH v.pagamentosCartao WHERE v.clienteId = :clienteId ORDER BY v.dataCriacao DESC")
+    List<Venda> findByClienteIdFetched(@Param("clienteId") Long clienteId);
+
+    @Query("SELECT v FROM Venda v LEFT JOIN FETCH v.itens LEFT JOIN FETCH v.pagamentosCartao ORDER BY v.dataCriacao DESC")
+    List<Venda> findAllFetched();
+
     Optional<Venda> findByCodigoPedido(String codigoPedido);
 
     List<Venda> findByClienteId(Long clienteId);

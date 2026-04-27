@@ -15,6 +15,7 @@ public class ProdutoService {
 
     private final ProdutoRepository produtoRepository;
 
+    @Transactional(readOnly = true)
     public List<Produto> listarTodos() {
         return produtoRepository.findByAtivoTrue();
     }
@@ -23,6 +24,7 @@ public class ProdutoService {
         return produtoRepository.findById(id);
     }
 
+    @Transactional(readOnly = true)
     public List<Produto> buscarComFiltros(String nome, String marca, Long categoriaId) {
         return produtoRepository.buscarComFiltros(nome, marca, categoriaId);
     }

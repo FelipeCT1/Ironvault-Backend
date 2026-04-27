@@ -7,6 +7,7 @@ import dev.fatec.ecommerce.venda.dto.ItemCompraDTO;
 import dev.fatec.ecommerce.venda.dto.PagamentoCartaoDTO;
 import dev.fatec.ecommerce.venda.model.*;
 import dev.fatec.ecommerce.venda.repository.VendaRepository;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,16 +25,24 @@ public class VendaService {
     private final ProdutoRepository produtoRepository;
     private final CupomRepository cupomRepository;
 
+    @Transactional(readOnly = true)
+    public List<Venda> listarTodas() {
+        return vendaRepository.findAllFetched();
+    }
+
+    @Transactional(readOnly = true)
     public List<Venda> listarPorCliente(Long clienteId) {
-        return vendaRepository.findByClienteIdOrderByDataCriacaoDesc(clienteId);
+        return vendaRepository.findByClienteIdFetched(clienteId);
     }
 
+    @Transactional(readOnly = true)
     public Optional<Venda> buscarPorId(Long id) {
-        return vendaRepository.findById(id);
+        return vendaRepository.findByIdFetched(id);
     }
 
+    @Transactional(readOnly = true)
     public Optional<Venda> buscarPorCodigo(String codigoPedido) {
-        return vendaRepository.findByCodigoPedido(codigoPedido);
+        return vendaRepository.findByCodigoPedidoFetched(codigoPedido);
     }
 
     @Transactional
@@ -73,9 +82,10 @@ public class VendaService {
             item.setProdutoNome(itemDto.getProdutoNome());
             item.setQuantidade(itemDto.getQuantidade());
             item.setPrecoUnitario(itemDto.getPrecoUnitario());
+            item.setSubtotal(itemDto.getPrecoUnitario().multiply(BigDecimal.valueOf(itemDto.getQuantidade())));
             venda.getItens().add(item);
 
-            subtotal = subtotal.add(itemDto.getPrecoUnitario().multiply(BigDecimal.valueOf(itemDto.getQuantidade())));
+            subtotal = subtotal.add(item.getSubtotal());
 
             // Dar baixa no estoque
             produtoRepository.findById(itemDto.getProdutoId()).ifPresent(produto -> {
@@ -99,32 +109,36 @@ public class VendaService {
 
         // Cupons de troca
         BigDecimal descontoTroca = BigDecimal.ZERO;
-        for (Long cupomId : dto.getCuponsTrocaIds()) {
-            cupomRepository.findById(cupomId).ifPresent(cupom -> {
-                venda.getCuponsTrocaIds().add(cupomId);
-                cupom.setUtilizado(true);
-                cupom.setDataUtilizacao(LocalDateTime.now());
-                cupomRepository.save(cupom);
-            });
-        }
-        if (!dto.getCuponsTrocaIds().isEmpty()) {
-            descontoTroca = dto.getCuponsTrocaIds().stream()
-                .map(id -> cupomRepository.findById(id))
-                .filter(Optional::isPresent)
-                .map(opt -> opt.get().getValor())
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (dto.getCuponsTrocaIds() != null) {
+            for (Long cupomId : dto.getCuponsTrocaIds()) {
+                cupomRepository.findById(cupomId).ifPresent(cupom -> {
+                    venda.getCuponsTrocaIds().add(cupomId);
+                    cupom.setUtilizado(true);
+                    cupom.setDataUtilizacao(LocalDateTime.now());
+                    cupomRepository.save(cupom);
+                });
+            }
+            if (!dto.getCuponsTrocaIds().isEmpty()) {
+                descontoTroca = dto.getCuponsTrocaIds().stream()
+                        .map(id -> cupomRepository.findById(id))
+                        .filter(Optional::isPresent)
+                        .map(opt -> opt.get().getValor())
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+            }
         }
         venda.setDescontoTroca(descontoTroca);
 
         // Pagamentos com cartão
-        for (PagamentoCartaoDTO pagamentoDto : dto.getPagamentosCartao()) {
-            PagamentoCartao pagamento = new PagamentoCartao();
-            pagamento.setVenda(venda);
-            pagamento.setCartaoId(pagamentoDto.getCartaoId());
-            pagamento.setBandeira(pagamentoDto.getBandeira());
-            pagamento.setUltimosDigitos(pagamentoDto.getUltimosDigitos());
-            pagamento.setValor(pagamentoDto.getValor());
-            venda.getPagamentosCartao().add(pagamento);
+        if (dto.getPagamentosCartao() != null) {
+            for (PagamentoCartaoDTO pagamentoDto : dto.getPagamentosCartao()) {
+                PagamentoCartao pagamento = new PagamentoCartao();
+                pagamento.setVenda(venda);
+                pagamento.setCartaoId(pagamentoDto.getCartaoId());
+                pagamento.setBandeira(pagamentoDto.getBandeira());
+                pagamento.setUltimosDigitos(pagamentoDto.getUltimosDigitos());
+                pagamento.setValor(pagamentoDto.getValor());
+                venda.getPagamentosCartao().add(pagamento);
+            }
         }
 
         // Calcular total
@@ -136,41 +150,40 @@ public class VendaService {
 
     @Transactional
     public void aprovar(Long vendaId) {
-        vendaRepository.findById(vendaId).ifPresent(venda -> {
-            venda.setStatus(StatusVenda.APROVADA);
-            vendaRepository.save(venda);
-        });
+        Venda venda = vendaRepository.findByIdFetched(vendaId)
+                .orElseThrow(() -> new EntityNotFoundException("Venda não encontrada"));
+        venda.setStatus(StatusVenda.APROVADA);
+        vendaRepository.save(venda);
     }
 
     @Transactional
     public void reprovar(Long vendaId) {
-        vendaRepository.findById(vendaId).ifPresent(venda -> {
-            venda.setStatus(StatusVenda.REPROVADA);
-            // Devolver itens ao estoque
-            for (ItemVenda item : venda.getItens()) {
-                produtoRepository.findById(item.getProdutoId()).ifPresent(produto -> {
-                    produto.setEstoque(produto.getEstoque() + item.getQuantidade());
-                    produtoRepository.save(produto);
-                });
-            }
-            vendaRepository.save(venda);
-        });
+        Venda venda = vendaRepository.findByIdFetched(vendaId)
+                .orElseThrow(() -> new EntityNotFoundException("Venda não encontrada"));
+        venda.setStatus(StatusVenda.REPROVADA);
+        for (ItemVenda item : venda.getItens()) {
+            produtoRepository.findById(item.getProdutoId()).ifPresent(produto -> {
+                produto.setEstoque(produto.getEstoque() + item.getQuantidade());
+                produtoRepository.save(produto);
+            });
+        }
+        vendaRepository.save(venda);
     }
 
     @Transactional
     public void despachar(Long vendaId) {
-        vendaRepository.findById(vendaId).ifPresent(venda -> {
-            venda.setStatus(StatusVenda.EM_TRANSITO);
-            vendaRepository.save(venda);
-        });
+        Venda venda = vendaRepository.findByIdFetched(vendaId)
+                .orElseThrow(() -> new EntityNotFoundException("Venda não encontrada"));
+        venda.setStatus(StatusVenda.EM_TRANSITO);
+        vendaRepository.save(venda);
     }
 
     @Transactional
     public void entregar(Long vendaId) {
-        vendaRepository.findById(vendaId).ifPresent(venda -> {
-            venda.setStatus(StatusVenda.ENTREGUE);
-            vendaRepository.save(venda);
-        });
+        Venda venda = vendaRepository.findByIdFetched(vendaId)
+                .orElseThrow(() -> new EntityNotFoundException("Venda não encontrada"));
+        venda.setStatus(StatusVenda.ENTREGUE);
+        vendaRepository.save(venda);
     }
 
     private String gerarCodigoPedido() {

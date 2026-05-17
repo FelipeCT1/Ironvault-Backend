@@ -3,6 +3,8 @@ package dev.fatec.ecommerce.venda.model;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -30,10 +32,12 @@ public class Venda {
     private String clienteNome;
 
     @OneToMany(mappedBy = "venda", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Fetch(FetchMode.SUBSELECT)
     private Set<ItemVenda> itens = new LinkedHashSet<>();
 
     @OneToMany(mappedBy = "venda", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<PagamentoCartao> pagamentosCartao = new LinkedHashSet<>();
+    @Fetch(FetchMode.SUBSELECT)
+    private List<PagamentoCartao> pagamentosCartao = new ArrayList<>();
 
     @Embedded
     private EnderecoEntrega enderecoEntrega;

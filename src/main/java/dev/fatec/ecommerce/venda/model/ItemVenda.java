@@ -17,22 +17,25 @@ public class ItemVenda {
     @EqualsAndHashCode.Include
     private Long id;
 
+    @EqualsAndHashCode.Include
+    @Column(nullable = false)
+    private Long produtoId;
+
+    @EqualsAndHashCode.Include
+    @Column(nullable = false)
+    private Integer quantidade;
+
+    @EqualsAndHashCode.Include
+    @Column(nullable = false, precision = 10, scale = 2)
+    private BigDecimal precoUnitario;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "venda_id", nullable = false)
     @JsonIgnore
     @ToString.Exclude
     private Venda venda;
 
-    @Column(nullable = false)
-    private Long produtoId;
-
     private String produtoNome;
-
-    @Column(nullable = false)
-    private Integer quantidade;
-
-    @Column(nullable = false, precision = 10, scale = 2)
-    private BigDecimal precoUnitario;
 
     @Column(precision = 10, scale = 2)
     private BigDecimal subtotal;

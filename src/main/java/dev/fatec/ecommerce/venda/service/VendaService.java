@@ -1,6 +1,7 @@
 package dev.fatec.ecommerce.venda.service;
 
 import dev.fatec.ecommerce.cupom.repository.CupomRepository;
+import dev.fatec.ecommerce.produto.model.Produto;
 import dev.fatec.ecommerce.produto.repository.ProdutoRepository;
 import dev.fatec.ecommerce.venda.dto.FinalizarCompraDTO;
 import dev.fatec.ecommerce.venda.dto.ItemCompraDTO;
@@ -76,6 +77,14 @@ public class VendaService {
         // Itens
         BigDecimal subtotal = BigDecimal.ZERO;
         for (ItemCompraDTO itemDto : dto.getItens()) {
+            Produto produto = produtoRepository.findById(itemDto.getProdutoId())
+                .orElseThrow(() -> new RuntimeException("Produto não encontrado: " + itemDto.getProdutoId()));
+
+            if (produto.getEstoque() < itemDto.getQuantidade()) {
+                throw new RuntimeException("Estoque insuficiente para o produto: " + produto.getNome()
+                    + " (disponível: " + produto.getEstoque() + ", solicitado: " + itemDto.getQuantidade() + ")");
+            }
+
             ItemVenda item = new ItemVenda();
             item.setVenda(venda);
             item.setProdutoId(itemDto.getProdutoId());
@@ -88,10 +97,8 @@ public class VendaService {
             subtotal = subtotal.add(item.getSubtotal());
 
             // Dar baixa no estoque
-            produtoRepository.findById(itemDto.getProdutoId()).ifPresent(produto -> {
-                produto.setEstoque(produto.getEstoque() - itemDto.getQuantidade());
-                produtoRepository.save(produto);
-            });
+            produto.setEstoque(produto.getEstoque() - itemDto.getQuantidade());
+            produtoRepository.save(produto);
         }
         venda.setSubtotal(subtotal);
 
@@ -152,6 +159,9 @@ public class VendaService {
     public void aprovar(Long vendaId) {
         Venda venda = vendaRepository.findByIdFetched(vendaId)
                 .orElseThrow(() -> new EntityNotFoundException("Venda não encontrada"));
+        if (venda.getStatus() != StatusVenda.EM_PROCESSAMENTO) {
+            throw new RuntimeException("Venda não está em processamento. Status atual: " + venda.getStatus());
+        }
         venda.setStatus(StatusVenda.APROVADA);
         vendaRepository.save(venda);
     }
@@ -160,6 +170,9 @@ public class VendaService {
     public void reprovar(Long vendaId) {
         Venda venda = vendaRepository.findByIdFetched(vendaId)
                 .orElseThrow(() -> new EntityNotFoundException("Venda não encontrada"));
+        if (venda.getStatus() != StatusVenda.EM_PROCESSAMENTO) {
+            throw new RuntimeException("Venda não está em processamento. Status atual: " + venda.getStatus());
+        }
         venda.setStatus(StatusVenda.REPROVADA);
         for (ItemVenda item : venda.getItens()) {
             produtoRepository.findById(item.getProdutoId()).ifPresent(produto -> {
@@ -174,6 +187,9 @@ public class VendaService {
     public void despachar(Long vendaId) {
         Venda venda = vendaRepository.findByIdFetched(vendaId)
                 .orElseThrow(() -> new EntityNotFoundException("Venda não encontrada"));
+        if (venda.getStatus() != StatusVenda.APROVADA) {
+            throw new RuntimeException("Venda não está aprovada. Status atual: " + venda.getStatus());
+        }
         venda.setStatus(StatusVenda.EM_TRANSITO);
         vendaRepository.save(venda);
     }
@@ -182,6 +198,9 @@ public class VendaService {
     public void entregar(Long vendaId) {
         Venda venda = vendaRepository.findByIdFetched(vendaId)
                 .orElseThrow(() -> new EntityNotFoundException("Venda não encontrada"));
+        if (venda.getStatus() != StatusVenda.EM_TRANSITO) {
+            throw new RuntimeException("Venda não está em trânsito. Status atual: " + venda.getStatus());
+        }
         venda.setStatus(StatusVenda.ENTREGUE);
         vendaRepository.save(venda);
     }

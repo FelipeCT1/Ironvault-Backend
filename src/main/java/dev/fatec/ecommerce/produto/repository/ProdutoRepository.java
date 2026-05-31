@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Repository
 public interface ProdutoRepository extends JpaRepository<Produto, Long>, JpaSpecificationExecutor<Produto> {
@@ -30,6 +31,9 @@ public interface ProdutoRepository extends JpaRepository<Produto, Long>, JpaSpec
 
     @Query("SELECT p FROM Produto p WHERE p.estoque = 0 AND p.ativo = true")
     List<Produto> findProdutosSemEstoque();
+
+    @Query("SELECT p FROM Produto p WHERE p.id IN :ids AND p.ativo = true")
+    List<Produto> findAllByIdIn(@Param("ids") Set<Long> ids);
 
     @Query(value = "SELECT p.* FROM produto p WHERE p.ativo = true AND p.estoque > 0 " +
            "AND p.id NOT IN (SELECT DISTINCT v.produto_id FROM venda_item v " +

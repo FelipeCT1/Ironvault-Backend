@@ -11,14 +11,24 @@ import dev.fatec.ecommerce.produto.model.Produto;
 import dev.fatec.ecommerce.produto.repository.CategoriaRepository;
 import dev.fatec.ecommerce.produto.repository.GrupoPrecificacaoRepository;
 import dev.fatec.ecommerce.produto.repository.ProdutoRepository;
+import dev.fatec.ecommerce.venda.model.ItemVenda;
+import dev.fatec.ecommerce.venda.model.StatusVenda;
+import dev.fatec.ecommerce.venda.model.Venda;
+import dev.fatec.ecommerce.venda.repository.VendaRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Random;
 
 @Component
 @Profile("dev")
@@ -31,8 +41,15 @@ public class DataInitializer implements CommandLineRunner {
     private final CupomRepository cupomRepository;
     private final ClienteRepository clienteRepository;
     private final PasswordEncoder passwordEncoder;
+    private final VendaRepository vendaRepository;
+
+    @PersistenceContext
+    private EntityManager entityManager;
+
+    private final Random random = new Random(42);
 
     @Override
+    @Transactional
     public void run(String... args) throws Exception {
         if (categoriaRepository.count() == 0) {
             inicializarCategorias();
@@ -48,6 +65,9 @@ public class DataInitializer implements CommandLineRunner {
         }
         if (clienteRepository.count() == 0) {
             inicializarClientes();
+        }
+        if (vendaRepository.count() == 0) {
+            inicializarVendas();
         }
     }
 
@@ -284,5 +304,72 @@ public class DataInitializer implements CommandLineRunner {
         cliente.getCartoes().add(cartao2);
 
         clienteRepository.save(cliente);
+    }
+
+    private void inicializarVendas() {
+        List<Produto> produtos = produtoRepository.findAll();
+        List<Long> clientes = List.of(1L, 2L);
+
+        int contador = 0;
+        int ano = 2025;
+        int mes = 5;
+
+        while (ano < 2026 || (ano == 2026 && mes <= 6)) {
+            int diasNoMes = java.time.YearMonth.of(ano, mes).lengthOfMonth();
+            int vendasNoMes = 4 + random.nextInt(5);
+
+            for (int i = 0; i < vendasNoMes; i++) {
+                int dia = 1 + random.nextInt(diasNoMes);
+                LocalDateTime data = LocalDateTime.of(ano, mes, dia,
+                        random.nextInt(8) + 8, random.nextInt(60));
+
+                Long clienteId = clientes.get(random.nextInt(clientes.size()));
+                Venda venda = new Venda();
+                venda.setClienteId(clienteId);
+                venda.setClienteNome(clienteId == 1L ? "Admin IronVault" : "João Silva");
+                venda.setCodigoPedido("PED-" + String.format("%04d", ++contador));
+
+                int qtdItens = 1 + random.nextInt(3);
+                BigDecimal subtotal = BigDecimal.ZERO;
+                for (int j = 0; j < qtdItens; j++) {
+                    Produto p = produtos.get(random.nextInt(produtos.size()));
+                    int qtd = 1 + random.nextInt(3);
+
+                    ItemVenda item = new ItemVenda();
+                    item.setVenda(venda);
+                    item.setProdutoId(p.getId());
+                    item.setProdutoNome(p.getNome());
+                    item.setQuantidade(qtd);
+                    item.setPrecoUnitario(p.getValorVenda());
+                    item.setSubtotal(p.getValorVenda().multiply(BigDecimal.valueOf(qtd)));
+                    venda.getItens().add(item);
+                    subtotal = subtotal.add(item.getSubtotal());
+                }
+
+                venda.setSubtotal(subtotal);
+                venda.setValorFrete(BigDecimal.ZERO);
+                venda.setDescontoPromocional(BigDecimal.ZERO);
+                venda.setDescontoTroca(BigDecimal.ZERO);
+
+                StatusVenda[] statuses = {StatusVenda.APROVADA, StatusVenda.ENTREGUE, StatusVenda.EM_TRANSITO};
+                venda.setStatus(statuses[random.nextInt(statuses.length)]);
+                venda.setTotal(subtotal);
+
+                vendaRepository.save(venda);
+                entityManager.flush();
+
+                entityManager.createNativeQuery(
+                        "UPDATE venda SET data_criacao = :data WHERE id = :id")
+                        .setParameter("data", data)
+                        .setParameter("id", venda.getId())
+                        .executeUpdate();
+            }
+
+            mes++;
+            if (mes > 12) {
+                mes = 1;
+                ano++;
+            }
+        }
     }
 }

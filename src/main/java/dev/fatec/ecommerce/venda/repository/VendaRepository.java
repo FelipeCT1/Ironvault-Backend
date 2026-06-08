@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -33,6 +34,9 @@ public interface VendaRepository extends JpaRepository<Venda, Long> {
 
     @Query("SELECT v FROM Venda v WHERE v.clienteId = :clienteId ORDER BY v.dataCriacao DESC")
     List<Venda> findByClienteIdOrderByDataCriacaoDesc(@Param("clienteId") Long clienteId);
+
+    @Query("SELECT v FROM Venda v LEFT JOIN FETCH v.itens WHERE v.dataCriacao >= :inicio AND v.dataCriacao < :fim AND v.status <> 'REPROVADA' ORDER BY v.dataCriacao DESC")
+    List<Venda> findByDataCriacaoBetweenFetched(@Param("inicio") LocalDateTime inicio, @Param("fim") LocalDateTime fim);
 
     @Query("SELECT COUNT(v) + 1 FROM Venda v")
     Long getNextPedidoNumber();

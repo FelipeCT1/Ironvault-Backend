@@ -50,6 +50,7 @@ public class VendaService {
     public Venda finalizarCompra(FinalizarCompraDTO dto) {
         Venda venda = new Venda();
         venda.setClienteId(dto.getClienteId());
+        venda.setClienteNome(dto.getClienteNome());
         venda.setCodigoPedido(gerarCodigoPedido());
 
         // Endereço de entrega

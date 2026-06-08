@@ -10,6 +10,8 @@ public class FinalizarCompraDTO {
 
     private Long clienteId;
 
+    private String clienteNome;
+
     private List<ItemCompraDTO> itens;
 
     private EnderecoEntregaDTO enderecoEntrega;

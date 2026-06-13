@@ -72,20 +72,30 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private void inicializarCategorias() {
-        Categoria suplemento = new Categoria();
-        suplemento.setNome("SUPLEMENTO");
-        suplemento.setDescricao("Suplementos alimentares e nutricionais");
-        categoriaRepository.save(suplemento);
+        Categoria proteinas = new Categoria();
+        proteinas.setNome("PROTEINAS");
+        proteinas.setDescricao("Proteínas e suplementos proteicos");
+        categoriaRepository.save(proteinas);
 
-        Categoria acessorio = new Categoria();
-        acessorio.setNome("ACESSORIO");
-        acessorio.setDescricao("Acessórios para academia");
-        categoriaRepository.save(acessorio);
+        Categoria aminoacidos = new Categoria();
+        aminoacidos.setNome("AMINOACIDOS");
+        aminoacidos.setDescricao("Aminoácidos e desempenho muscular");
+        categoriaRepository.save(aminoacidos);
 
-        Categoria medicamento = new Categoria();
-        medicamento.setNome("MEDICAMENTO_CONTROLADO");
-        medicamento.setDescricao("Medicamentos com retenção de receita");
-        categoriaRepository.save(medicamento);
+        Categoria preTreino = new Categoria();
+        preTreino.setNome("PRE_TREINO");
+        preTreino.setDescricao("Pré-treinos e energéticos");
+        categoriaRepository.save(preTreino);
+
+        Categoria vitaminas = new Categoria();
+        vitaminas.setNome("VITAMINAS");
+        vitaminas.setDescricao("Vitaminas, minerais e saudabilidade");
+        categoriaRepository.save(vitaminas);
+
+        Categoria acessorios = new Categoria();
+        acessorios.setNome("ACESSORIOS");
+        acessorios.setDescricao("Acessórios para academia");
+        categoriaRepository.save(acessorios);
     }
 
     private void inicializarGruposPrecificacao() {
@@ -109,34 +119,37 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private void inicializarProdutos() {
-        Categoria suplemento = categoriaRepository.findByNome("SUPLEMENTO").orElseThrow();
-        Categoria acessorio = categoriaRepository.findByNome("ACESSORIO").orElseThrow();
+        Categoria proteinas = categoriaRepository.findByNome("PROTEINAS").orElseThrow();
+        Categoria aminoacidos = categoriaRepository.findByNome("AMINOACIDOS").orElseThrow();
+        Categoria preTreino = categoriaRepository.findByNome("PRE_TREINO").orElseThrow();
+        Categoria vitaminas = categoriaRepository.findByNome("VITAMINAS").orElseThrow();
+        Categoria acessorios = categoriaRepository.findByNome("ACESSORIOS").orElseThrow();
         GrupoPrecificacao standard = grupoPrecificacaoRepository.findByNome("Standard").orElseThrow();
         GrupoPrecificacao premium = grupoPrecificacaoRepository.findByNome("Premium").orElseThrow();
 
         criarProduto("Whey Protein Concentrate", "Growth", "Proteína do soro do leite concentrada",
-            suplemento, standard, new BigDecimal("69.15"), 50);
+            proteinas, standard, new BigDecimal("69.15"), 50);
 
         criarProduto("Creatina Micronizada", "Max Titanium", "Creatina monohidratada micronizada",
-            suplemento, standard, new BigDecimal("46.07"), 30);
+            aminoacidos, standard, new BigDecimal("46.07"), 30);
 
         criarProduto("Pré-Treino Caffeine", "Insanity Labs", "Pré-treino com alta dose de cafeína",
-            suplemento, premium, new BigDecimal("79.93"), 20);
+            preTreino, premium, new BigDecimal("79.93"), 20);
 
         criarProduto("BCAA 2:1:1", "Growth", "Aminoácidos de cadeia ramificada",
-            suplemento, standard, new BigDecimal("53.77"), 40);
+            aminoacidos, standard, new BigDecimal("53.77"), 40);
 
         criarProduto("Glutamina", "Probiótica", "Glutamina livre para recuperação",
-            suplemento, standard, new BigDecimal("38.38"), 35);
+            aminoacidos, standard, new BigDecimal("38.38"), 35);
 
         criarProduto("Multivitamínico", "Universal", "Complexo de vitaminas e minerais",
-            suplemento, standard, new BigDecimal("30.69"), 60);
+            vitaminas, standard, new BigDecimal("30.69"), 60);
 
         criarProduto("Ômega 3", "Madre Labs", "Óleo de peixe concentrado",
-            suplemento, standard, new BigDecimal("42.23"), 25);
+            vitaminas, standard, new BigDecimal("42.23"), 25);
 
         criarProduto("Shaker 600ml", "IronVault", "Shaker com divisória",
-            acessorio, standard, new BigDecimal("23.00"), 100);
+            acessorios, standard, new BigDecimal("23.00"), 100);
     }
 
     private void criarProduto(String nome, String marca, String descricao,
@@ -312,9 +325,9 @@ public class DataInitializer implements CommandLineRunner {
 
         int contador = 0;
         int ano = 2025;
-        int mes = 5;
+        int mes = 1;
 
-        while (ano < 2026 || (ano == 2026 && mes <= 6)) {
+        while (ano < 2027) {
             int diasNoMes = java.time.YearMonth.of(ano, mes).lengthOfMonth();
             int vendasNoMes = 4 + random.nextInt(5);
 
@@ -351,8 +364,12 @@ public class DataInitializer implements CommandLineRunner {
                 venda.setDescontoPromocional(BigDecimal.ZERO);
                 venda.setDescontoTroca(BigDecimal.ZERO);
 
-                StatusVenda[] statuses = {StatusVenda.APROVADA, StatusVenda.ENTREGUE, StatusVenda.EM_TRANSITO};
-                venda.setStatus(statuses[random.nextInt(statuses.length)]);
+                StatusVenda[] statuses = {StatusVenda.APROVADA, StatusVenda.ENTREGUE, StatusVenda.EM_TRANSITO, StatusVenda.REPROVADA};
+                StatusVenda status = statuses[random.nextInt(statuses.length)];
+                if (status == StatusVenda.REPROVADA && random.nextInt(10) > 2) {
+                    status = StatusVenda.ENTREGUE;
+                }
+                venda.setStatus(status);
                 venda.setTotal(subtotal);
 
                 vendaRepository.save(venda);
